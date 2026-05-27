@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RouteLog · Bruce County</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title> TSP · OSRM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -232,6 +234,81 @@ select.inp{cursor:pointer}
 }
 .order-strip.on{display:block}
 .order-strip strong{color:var(--accent2)}
+
+/* ── MOBILE ── */
+@media (max-width: 640px) {
+  /* iOS safe area padding */
+  :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+
+  html,body { height:100%; height: -webkit-fill-available; overflow:hidden; }
+
+  /* Header: hide tabs and live label, just show logo */
+  .header-tabs { display:none; }
+  .header-right { display:none; }
+  .logo em:last-child { display:none; }
+  header { height:44px; justify-content:center; }
+
+  /* Stack layout vertically */
+  .app { flex-direction:column; }
+
+  /* Map takes top portion */
+  .map-wrap { flex:1; min-height:0; }
+
+  /* Sidebar becomes a bottom drawer */
+  .sidebar {
+    width:100%; min-width:0;
+    border-right:none;
+    border-top:1px solid var(--border2);
+    flex-shrink:0;
+    height:52vh;
+    max-height:52vh;
+  }
+
+  /* Bottom nav bar replaces header tabs */
+  .mobile-nav {
+    display:flex;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .mobile-nav-btn {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:8px 4px; gap:3px;
+    background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--muted); cursor:pointer; font-family:var(--mono);
+    font-size:9px; letter-spacing:.06em; text-transform:uppercase;
+    transition:.15s;
+  }
+  .mobile-nav-btn .nav-icon { font-size:18px; line-height:1; }
+  .mobile-nav-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* Map hint repositioned above nav */
+  .map-hint { bottom:8px; font-size:10px; padding:5px 12px; }
+
+  /* Toasts above safe area */
+  .toasts { bottom: calc(8px + var(--safe-bottom)); right:10px; left:10px; align-items:stretch; }
+  .toast { max-width:100%; }
+
+  /* Larger touch targets */
+  .wp-item { padding:12px 16px; }
+  .wp-del { padding:6px 8px; font-size:18px; }
+  .place-item { padding:12px 16px; }
+  .btn { padding:10px 14px; }
+  .btn-sm { padding:8px 12px; }
+  .inp { padding:10px 10px; font-size:14px; }
+
+  /* Solve button full width on mobile */
+  #solveBtn { flex:1; }
+
+  /* Modal full-width on mobile */
+  .modal { width:95vw; margin:0 auto; }
+
+  /* Shrink stat values a touch */
+  .stat-v { font-size:13px; }
+}
+@media (min-width:641px) {
+  .mobile-nav { display:none; }
+}
 </style>
 </head>
 <body>
@@ -252,6 +329,14 @@ select.inp{cursor:pointer}
 
 <div class="app">
 <div class="sidebar">
+
+  <!-- Mobile bottom nav (visible on small screens only) -->
+  <div class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-btn active" data-tab="planner"><span class="nav-icon">🗺️</span>Plan</button>
+    <button class="mobile-nav-btn" data-tab="places"><span class="nav-icon">📍</span>Places</button>
+    <button class="mobile-nav-btn" data-tab="routes"><span class="nav-icon">📋</span>Routes</button>
+    <button class="mobile-nav-btn" data-tab="settings"><span class="nav-icon">⚙️</span>Settings</button>
+  </div>
 
   <!-- ══ PLANNER PANE ══ -->
   <div class="pane active" id="pane-planner">
@@ -920,9 +1005,12 @@ document.getElementById('roundTripChk').addEventListener('change',()=>{
 // ═══════════════════════════════════════════════════════
 function switchTab(name) {
   document.querySelectorAll('.htab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.mobile-nav-btn').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id===`pane-${name}`));
+  // Leaflet needs a nudge when its container changes size
+  setTimeout(()=>map.invalidateSize(),50);
 }
-document.querySelectorAll('.htab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+document.querySelectorAll('.htab, .mobile-nav-btn').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
 
 // ═══════════════════════════════════════════════════════
 //  LOADING / TOAST
